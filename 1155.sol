@@ -1609,12 +1609,12 @@ library ECDSA {
     {   require(assetId <= assetCount.current(),"Enter a valid Id");
         require(freeMint[user][assetId] == false, "Already minted");
         require(asset[assetId].minted + 1 <=  asset[assetId].supply,"Supply reached");
+        tokenCount.increment();
          uint256 nftId = tokenCount.current();
          _uri[nftId] = asset[assetId].uri;
         _mint(user,nftId,1,"");
         freeMint[user][assetId] = true;
         asset[assetId].minted += 1;
-        tokenCount.increment();
         emit Minted(nftId, 1, user);
 
     }
@@ -1623,12 +1623,12 @@ library ECDSA {
     external payable
 
     {   require(asset[assetId].minted + 1 <=  asset[assetId].supply,"Supply reached");
+         tokenCount.increment();
          uint256 nftId = tokenCount.current();
          _uri[nftId] = asset[assetId].uri;
         require(msg.value == asset[assetId].price,"Enter the correct price");
         _mint(user,nftId,1,"");
         asset[assetId].minted += 1;
-        tokenCount.increment();
         emit Minted(nftId, 1, user);
 
     }
