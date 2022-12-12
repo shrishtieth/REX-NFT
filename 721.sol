@@ -1265,6 +1265,7 @@ abstract contract ReentrancyGuard {
 
 contract RexNft is Ownable, ERC721A, ReentrancyGuard {
 
+  using Strings for uint256;
   uint256 public whitelistStart;
   uint256 public whitelistEnd;
   uint256 public publicSaleStart;
@@ -1273,16 +1274,19 @@ contract RexNft is Ownable, ERC721A, ReentrancyGuard {
   uint256 public publicSalePrice = 0.1 ether;
   uint256 public maximumWhitelistMint = 500;
   uint256 public whitelistMinted;
-  uint256 public maximumWhitelistMintByUser;
+  uint256 public maximumWhitelistMintByUser = 50;
   mapping(address => bool) public isWhitelisted;
   mapping(address => uint256) public whitelistMintByUser;
   mapping(address => uint256) public publicSaleMintByUser;
-
+  mapping(uint256 => bool) public uriUpdated;
+  mapping(uint256 => string) public _uri;
+  mapping(address => bool) public isAdmin;
 
 
  
   event PublicSalePriceUpdated(uint256 price);
   event PublicSaleMinted(address indexed user, uint256 indexed quantity);
+  event Airdrop(address indexed user, uint256 indexed quantity);
   event WhitelistMinted(address indexed user, uint256 indexed quantity);
   event WhitelistUpdated(address user, bool isWhitelisted);
   event MaxBatchSizeUpdated(uint256 size);
@@ -1305,6 +1309,7 @@ contract RexNft is Ownable, ERC721A, ReentrancyGuard {
     payable
   
   {
+    require(block.timestamp > whitelistStart,"Sale not started");
     if(block.timestamp > whitelistStart && block.timestamp < whitelistEnd){
      require(isWhitelisted[msg.sender],"User not whitelisted");
      require(whitelistMintByUser[msg.sender] + quantity <= maximumWhitelistMintByUser,"User has reached the limit");
@@ -1326,6 +1331,20 @@ contract RexNft is Ownable, ERC721A, ReentrancyGuard {
      emit PublicSaleMinted(msg.sender, quantity);
 
     }
+  }
+
+    function airdrop(uint256[] memory quantities, address[] memory users)
+    external
+    onlyOwner
+  
+  {
+    
+     for(uint256 i = 0; i< quantities.length; i++){
+     require(totalSupply() + quantities[i] <= collectionSize, "reached max supply");
+     _safeMint(users[i], quantities[i]);
+     emit Airdrop(users[i], quantities[i]);
+     }
+    
   }
 
   function refundIfOver(uint256 price) private {
@@ -1370,6 +1389,23 @@ contract RexNft is Ownable, ERC721A, ReentrancyGuard {
     emit MaxBatchSizeUpdated(size);
   }
 
+  function updateUri(uint256 tokenId, string memory uri) external onlyOwner{
+    require(isAdmin[msg.sender] || msg.sender == owner(),"Access Denied");
+    require(tokenId <= collectionSize,"Enter a valid number");
+    uriUpdated[tokenId] = true;
+    _uri[tokenId] = uri;
+  }
+
+
+  function setAdmin(address user, bool _isAdmin) external onlyOwner{
+     isAdmin[user] = _isAdmin;
+  }
+
+  function updateMaximumMint(uint256 _maximumWhitelist, uint256 _maximumWhitelistUser) external onlyOwner{
+    maximumWhitelistMint = _maximumWhitelist;
+    maximumWhitelistMintByUser = _maximumWhitelistUser;
+  }
+
   // // metadata URI
   string private _baseTokenURI;
 
@@ -1390,6 +1426,30 @@ contract RexNft is Ownable, ERC721A, ReentrancyGuard {
 
   function numberMinted(address owner) public view returns (uint256) {
     return _numberMinted(owner);
+  }
+
+  function tokenURI(uint256 tokenId)
+    public
+    view
+    virtual
+    override
+    returns (string memory)
+  {
+    require(
+      _exists(tokenId),
+      "ERC721Metadata: URI query for nonexistent token"
+    );
+
+    if(uriUpdated[tokenId]){
+      return(_uri[tokenId]);
+    }
+    else{
+    string memory baseURI = _baseURI();
+    return
+      bytes(baseURI).length > 0
+        ? string(abi.encodePacked(baseURI, tokenId.toString(),".json"))
+        : "";
+    }
   }
 
   function getOwnershipData(uint256 tokenId)
