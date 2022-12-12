@@ -1583,6 +1583,9 @@ library ECDSA {
     mapping(uint256 => string) public _uri;
     mapping(uint256 => Asset) public asset; 
     mapping(address => mapping(uint256 => bool)) public freeMint;
+    mapping(address => bool) public isAdmin;
+    bool public publicMint;
+    uint256 public giveawayStart;
 
 
     struct Asset{
@@ -1606,7 +1609,8 @@ library ECDSA {
     function mintGiveaway(uint256 assetId, address user)
     external
 
-    {   require(assetId <= assetCount.current(),"Enter a valid Id");
+    {   require(block.timestamp > giveawayStart,"Giveaway not active");
+        require(assetId <= assetCount.current(),"Enter a valid Id");
         require(freeMint[user][assetId] == false, "Already minted");
         require(asset[assetId].minted + 1 <=  asset[assetId].supply,"Supply reached");
         tokenCount.increment();
@@ -1619,10 +1623,31 @@ library ECDSA {
 
     }
 
+    function airdrop(uint256[] memory assetId, address[] memory users)
+    external onlyOwner
+
+    {   
+        require(assetId.length == users.length, "Invalid entry");
+        for(uint256 i = 0; i< users.length; i++){
+        require(assetId[i] <= assetCount.current(),"Enter a valid Id");
+        require(asset[assetId[i]].minted + 1 <=  asset[assetId[i]].supply,"Supply reached");
+        tokenCount.increment();
+         uint256 nftId = tokenCount.current();
+         _uri[nftId] = asset[assetId[i]].uri;
+        _mint(users[i],nftId,1,"");
+        asset[assetId[i]].minted += 1;
+        emit Minted(nftId, 1, users[i]);
+
+        }
+       
+
+    }
+
     function mint(uint256 assetId, address user)
     external payable
 
-    {   require(asset[assetId].minted + 1 <=  asset[assetId].supply,"Supply reached");
+    {   require(publicMint,"Mint not live");
+        require(asset[assetId].minted + 1 <=  asset[assetId].supply,"Supply reached");
          tokenCount.increment();
          uint256 nftId = tokenCount.current();
          _uri[nftId] = asset[assetId].uri;
@@ -1641,6 +1666,14 @@ library ECDSA {
    // returns the total amount of NFTs minted
     function getTokenCounter() external view returns (uint256 tracker){
         return(tokenCount.current());
+    }
+
+    function updateGiveawayStart(uint256 start) external onlyOwner{
+        giveawayStart = start;
+    }
+
+    function setPublicStart(bool _start) external onlyOwner{
+        publicMint = _start;
     }
 
 
@@ -1664,9 +1697,15 @@ library ECDSA {
     }
   
 
-  function updateUri(uint256 tokenId, string memory newUri) external onlyOwner {
+  function updateUri(uint256 tokenId, string memory newUri) external {
+    require(isAdmin[msg.sender] || msg.sender == owner(),"Access Denied");
+    require(tokenId <= tokenCount.current(),"Enter a valid id");
     _uri[tokenId] = newUri;
     emit UriUpdated(tokenId,newUri);
+  }
+
+  function setAdmin(address user, bool _isAdmin) external onlyOwner{
+     isAdmin[user] = _isAdmin;
   }
 
   function withdrawMoney() external onlyOwner nonReentrant {
