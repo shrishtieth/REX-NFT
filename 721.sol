@@ -1325,7 +1325,7 @@ contract RexNft is Ownable, ERC721A, ReentrancyGuard {
     else if(block.timestamp > publicSaleStart){
      require(totalSupply() + quantity <= collectionSize, "reached max supply");
      require(msg.value >= quantity * publicSalePrice ,"Enter correct whitelist Amount"); 
-     require(publicSaleMintByUser[msg.sender] + quantity <= maximumPublicMintByUser);
+     require(publicSaleMintByUser[msg.sender] + quantity <= maximumPublicMintByUser, "Maximum mint exceeded");
      _safeMint(msg.sender, quantity);
      publicSaleMintByUser[msg.sender] += quantity;
      refundIfOver(publicSalePrice * quantity);
