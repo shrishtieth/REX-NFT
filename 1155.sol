@@ -1586,6 +1586,8 @@ library ECDSA {
     mapping(address => bool) public isAdmin;
     bool public publicMint;
     uint256 public giveawayStart;
+    mapping(uint256 => uint256 ) public maximumAssetMintByUser;
+    mapping(uint256 => mapping(address => uint256)) public assetMintedByUser;
 
 
     struct Asset{
@@ -1649,6 +1651,7 @@ library ECDSA {
     {   require(publicMint,"Mint not live");
         require(asset[assetId].minted + 1 <=  asset[assetId].supply,"Supply reached");
          tokenCount.increment();
+         require(assetMintedByUser[assetId][user] + 1 <= maximumAssetMintByUser[assetId], "Mint Limit Exceeded");
          uint256 nftId = tokenCount.current();
          _uri[nftId] = asset[assetId].uri;
         require(msg.value == asset[assetId].price,"Enter the correct price");
@@ -1677,7 +1680,7 @@ library ECDSA {
     }
 
 
-    function addAsset(string memory name, string memory assetUri, uint256 assetSupply, uint256 price) external onlyOwner{
+    function addAsset(string memory name, string memory assetUri, uint256 assetSupply, uint256 price, uint256 limit) external onlyOwner{
         assetCount.increment();
         uint256 assetId = assetCount.current();
         asset[assetId].id = assetId;
@@ -1686,14 +1689,16 @@ library ECDSA {
         asset[assetId].supply = assetSupply;
         asset[assetId].supply = assetSupply;
         asset[assetId].price = price;
+        maximumAssetMintByUser[assetId] = limit;
     }
 
     function updateAsset(uint256 assetId, string memory name, string memory assetUri,
-     uint256 supply, uint256 price) external onlyOwner{
+     uint256 supply, uint256 price, uint256 limit) external onlyOwner{
         asset[assetId].name = name;
         asset[assetId].uri = assetUri;
         asset[assetId].supply = supply; 
         asset[assetId].price = price;
+        maximumAssetMintByUser[assetId] = limit;
     }
   
 
