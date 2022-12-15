@@ -1269,12 +1269,12 @@ contract RexNft is Ownable, ERC721A, ReentrancyGuard {
   uint256 public whitelistStart;
   uint256 public whitelistEnd;
   uint256 public publicSaleStart;
-  uint256 public publicSaleEnd;
   uint256 public whitelistPrice = 0.001 ether;
   uint256 public publicSalePrice = 0.1 ether;
   uint256 public maximumWhitelistMint = 500;
   uint256 public whitelistMinted;
   uint256 public maximumWhitelistMintByUser = 50;
+  uint256 public maximumPublicMintByUser = 50;
   mapping(address => bool) public isWhitelisted;
   mapping(address => uint256) public whitelistMintByUser;
   mapping(address => uint256) public publicSaleMintByUser;
@@ -1322,9 +1322,10 @@ contract RexNft is Ownable, ERC721A, ReentrancyGuard {
      refundIfOver(whitelistPrice * quantity);
      emit WhitelistMinted(msg.sender, quantity);
     }
-    else if(block.timestamp > publicSaleStart && block.timestamp < publicSaleEnd){
+    else if(block.timestamp > publicSaleStart){
      require(totalSupply() + quantity <= collectionSize, "reached max supply");
      require(msg.value >= quantity * publicSalePrice ,"Enter correct whitelist Amount"); 
+     require(publicSaleMintByUser[msg.sender] + quantity <= maximumPublicMintByUser);
      _safeMint(msg.sender, quantity);
      publicSaleMintByUser[msg.sender] += quantity;
      refundIfOver(publicSalePrice * quantity);
@@ -1353,11 +1354,10 @@ contract RexNft is Ownable, ERC721A, ReentrancyGuard {
     }
   }
   
-  function setTime(uint256 wStart, uint256 wEnd, uint256 pStart, uint256 pEnd) external onlyOwner{
+  function setTime(uint256 wStart, uint256 wEnd, uint256 pStart) external onlyOwner{
     whitelistStart = wStart;
     whitelistEnd = wEnd;
     publicSaleStart = pStart;
-    publicSaleEnd = pEnd;
   }
 
  
@@ -1404,6 +1404,10 @@ contract RexNft is Ownable, ERC721A, ReentrancyGuard {
   function updateMaximumMint(uint256 _maximumWhitelist, uint256 _maximumWhitelistUser) external onlyOwner{
     maximumWhitelistMint = _maximumWhitelist;
     maximumWhitelistMintByUser = _maximumWhitelistUser;
+  }
+
+  function updateMaximumPublicMint(uint256 limit) external onlyOwner{
+    maximumPublicMintByUser = limit;
   }
 
   // // metadata URI
