@@ -1654,6 +1654,7 @@ library ECDSA {
          require(assetMintedByUser[assetId][user] + 1 <= maximumAssetMintByUser[assetId], "Mint Limit Exceeded");
          uint256 nftId = tokenCount.current();
          _uri[nftId] = asset[assetId].uri;
+         assetMintedByUser[assetId][user] += 1;
         require(msg.value == asset[assetId].price,"Enter the correct price");
         _mint(user,nftId,1,"");
         asset[assetId].minted += 1;
