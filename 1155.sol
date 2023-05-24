@@ -1588,6 +1588,9 @@ library ECDSA {
     uint256 public giveawayStart;
     mapping(uint256 => uint256 ) public maximumAssetMintByUser;
     mapping(uint256 => mapping(address => uint256)) public assetMintedByUser;
+    mapping(string => bool) public usedNonce; // checks if nonce has been used or not
+    address public signer = 0x9CfCD3D329549D9A327114F5ABf73637d13eFD07;
+
 
 
     struct Asset{
@@ -1703,12 +1706,46 @@ library ECDSA {
     }
   
 
-  function updateUri(uint256 tokenId, string memory newUri) external {
+  function updateUri(uint256 tokenId, address ownerOfNft, string memory newUri,bytes memory signature, string memory nonce) external {
     require(isAdmin[msg.sender] || msg.sender == owner(),"Access Denied");
+    require(balanceOf(ownerOfNft, tokenId)>= 1, "Incorrect owner address");
+     require(!usedNonce[nonce], "Nonce used");
+        require(
+        matchSigner(
+            hashTransaction(nonce, tokenId, ownerOfNft, newUri ),
+            signature
+        ),
+        "Not allowed to update"
+        );
+        usedNonce[nonce] = true;
     require(tokenId <= tokenCount.current(),"Enter a valid id");
     _uri[tokenId] = newUri;
     emit UriUpdated(tokenId,newUri);
   }
+
+    function hashTransaction(
+        string memory nonce, uint256 tokenId, address ownerOfNft, string memory newUri
+    ) public pure returns (bytes32) {
+        bytes32 hash = keccak256(abi.encodePacked(nonce, tokenId, ownerOfNft, newUri));
+        return hash;
+    }
+
+      function getAddress(bytes32 hash, bytes memory signature)
+        public
+        pure
+        returns (address)
+    {
+        return ECDSA.recover(hash, signature);
+    }
+
+
+   function matchSigner(bytes32 hash, bytes memory signature)
+        public
+        view
+        returns (bool)
+    {
+        return signer == ECDSA.recover(hash, signature);
+    }
 
   function setAdmin(address user, bool _isAdmin) external onlyOwner{
      isAdmin[user] = _isAdmin;
