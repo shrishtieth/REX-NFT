@@ -1707,7 +1707,6 @@ library ECDSA {
   
 
   function updateUri(uint256 tokenId, address ownerOfNft, string memory newUri,bytes memory signature, string memory nonce) external {
-    require(isAdmin[msg.sender] || msg.sender == owner(),"Access Denied");
     require(balanceOf(ownerOfNft, tokenId)>= 1, "Incorrect owner address");
      require(!usedNonce[nonce], "Nonce used");
         require(
